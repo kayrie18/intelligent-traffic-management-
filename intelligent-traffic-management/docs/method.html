@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Method - Intelligent Traffic Management</title>
+<meta name="description" content="How the traffic simulation, dataset and neural network controller work.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="index.html">Intelligent Traffic Management</a>
+<nav aria-label="Main">
+<a href="index.html">Overview</a><a href="method.html" aria-current="page">Method</a><a href="results.html">Results</a><a href="https://github.com/kayrie18/intelligent-traffic-management">GitHub repository</a>
+</nav></div></header>
+
+<main class="wrap">
+<section class="intro">
+<h1>Method</h1>
+<p class="lede">Simulated traffic goes in, a neural network picks the green split, and a second-by-second junction model measures what happens to the queues.</p>
+</section>
+
+<h2 style="margin-top:0">The pipeline</h2>
+<ol class="flow">
+<li><b>1</b><div><h3>Simulate demand</h3><p>Hourly volumes for North, South, East and West follow a daily pattern: a morning peak that loads North, an evening peak that loads South, and a lunchtime surge on East and West. Vehicles arrive randomly (Poisson) at the rate set by the hour.</p></div></li>
+<li><b>2</b><div><h3>Read the detectors</h3><p>Each cycle the controller counts arrivals on every approach, converts them to vehicles per hour and smooths them with an exponential average (weight 0.35 on the newest cycle). Counts over 90 seconds are noisy, so the model is trained on noisy readings.</p></div></li>
+<li><b>3</b><div><h3>Predict the green split</h3><p>A neural network with two hidden layers of 16 units takes the four smoothed volumes and returns the North–South green time. East–West gets the remainder of the 80 seconds of green.</p></div></li>
+<li><b>4</b><div><h3>Run the junction</h3><p>The simulator releases queued vehicles during green, adds the 5-second amber periods, and records every vehicle's waiting time through a full 24 hours.</p></div></li>
+</ol>
+
+<h2>Junction assumptions</h2>
+<div class="tbl"><table>
+<tr><th>Setting</th><th>Value</th></tr>
+<tr><td>Layout</td><td>Four-way junction, one lane per approach, two phases (North–South, East–West)</td></tr>
+<tr><td>Cycle length</td><td>90 s, made of 80 s of green and 10 s of amber/all-red</td></tr>
+<tr><td>Minimum green</td><td>10 s for either phase</td></tr>
+<tr><td>Saturation flow</td><td>1,800 vehicles per hour of green per lane</td></tr>
+<tr><td>Baseline</td><td>Fixed-time plan, 40 s North–South and 40 s East–West</td></tr>
+<tr><td>Peak simulated volume</td><td>About 750 veh/h on the busiest approach</td></tr>
+</table></div>
+
+<h2>Training data</h2>
+<p>The file <code>data/traffic_training_data.csv</code> has 15,000 rows. Seventy percent are drawn from the daily demand pattern with random scaling, and thirty percent are uniform random volumes so the network also sees unusual situations. Each row holds the four noisy sensor readings (about 18% error), the four true volumes and the ideal green time.</p>
+<h3>Where the labels come from</h3>
+<p>The ideal green time uses the equal degree-of-saturation rule from Webster's signal-timing method. Each phase is limited by its busiest approach, with flow ratio y = volume ÷ 1,800, and green time is shared in proportion to y:</p>
+<div class="formula">green_NS = 80 × y_NS ÷ (y_NS + y_EW), limited to 10–70 s</div>
+<p>So the network learns to imitate a sound engineering rule, but from noisy detector readings instead of exact volumes. Its value is that it handles noise and produces a single compact model that also runs in the browser demo.</p>
+
+<h2>Model</h2>
+<div class="tbl"><table>
+<tr><th>Item</th><th>Detail</th></tr>
+<tr><td>Type</td><td>Multi-layer perceptron (scikit-learn <code>MLPRegressor</code>), layers 4 → 16 → 16 → 1, ReLU</td></tr>
+<tr><td>Input</td><td>Smoothed vehicles per hour for North, South, East, West (divided by 1,000)</td></tr>
+<tr><td>Output</td><td>North–South green seconds (divided by 80), limited to 10–70 s</td></tr>
+<tr><td>Split</td><td>80% training, 20% test</td></tr>
+<tr><td>Export</td><td><code>models/model.json</code>; the same weights run in Python and in the browser</td></tr>
+</table></div>
+
+<h2>Limitations</h2>
+<p>This is a prototype on simulated data. The junction is simplified: no turning movements, pedestrians, buses, multiple lanes or neighbouring junctions. The labels come from a formula rather than from real optimal timings, so the network can approximate that rule but cannot beat it. A real deployment would need measured traffic counts and testing against a calibrated simulator before any change to a live signal.</p>
+</main>
+
+<footer class="site"><div class="wrap">
+<p>CP 81 Comprehension 2, Project 4: Intelligent Traffic Management System. Ekari Emmanuel Moyo, Reg. No. 23311351007.</p>
+<p>Source code, dataset and documentation: <a href="https://github.com/kayrie18/intelligent-traffic-management">https://github.com/kayrie18/intelligent-traffic-management</a></p>
+</div></footer>
+
+</body>
+</html>

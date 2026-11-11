@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Results - Intelligent Traffic Management</title>
+<meta name="description" content="Simulation results comparing a fixed-time signal with the AI adaptive controller.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="index.html">Intelligent Traffic Management</a>
+<nav aria-label="Main">
+<a href="index.html">Overview</a><a href="method.html">Method</a><a href="results.html" aria-current="page">Results</a><a href="https://github.com/kayrie18/intelligent-traffic-management">GitHub repository</a>
+</nav></div></header>
+
+<main class="wrap">
+<section class="intro">
+<h1>Results</h1>
+<p class="lede">Five simulated days, about <span id="veh">16,800</span> vehicles per day, with the same random arrivals given to each controller.</p>
+<div class="stat">
+<div><strong id="imp-avg">11%</strong><span>lower average delay than the fixed plan</span></div>
+<div><strong id="imp-peak">17%</strong><span>lower delay in the peak hours (07–09 and 16–18)</span></div>
+</div>
+</section>
+
+<h2 style="margin-top:0">Controller comparison</h2>
+<div class="tbl"><table>
+<thead><tr><th>Controller</th><th class="num">Avg delay per vehicle (s)</th><th class="num">Peak-hour delay (s)</th><th class="num">Longest queue (vehicles)</th><th class="num">Mean queue per approach</th></tr></thead>
+<tbody id="results-body"></tbody>
+</table></div>
+<p>Delay is the average time a vehicle spends waiting in the queue, measured over the whole day (mean ± standard deviation across the five days). The "perfect information" row gives the labelling rule the exact volumes, so it shows how close the AI gets to the best this rule could do.</p>
+
+<figure><img src="assets/delay_by_hour.png" alt="Line chart of average delay per vehicle by hour for the fixed-time plan and the AI controller"><figcaption>The fixed plan is worst in the peaks, when one road is much busier than the other.</figcaption></figure>
+
+<figure><img src="assets/ns_green_by_hour.png" alt="Line chart of the North-South green time chosen by the AI through the day"><figcaption>The AI gives North–South more green in the morning and evening peaks and less during the lunchtime East–West surge.</figcaption></figure>
+
+<h2>The demand that was simulated</h2>
+<figure><img src="assets/demand_profile.png" alt="Line chart of simulated vehicles per hour on the four approaches over 24 hours"><figcaption>Morning peak on North, evening peak on South, lunchtime surge on East and West.</figcaption></figure>
+
+<h2>How well the model learned the rule</h2>
+<div class="two">
+<div><p>On 3,000 held-out test rows, the model's recommendation is on average <strong id="mae">2.8 s</strong> away from the ideal green time, compared with <strong id="mae-fixed">8 s</strong> for always using 40 s. The coefficient of determination (R²) is <strong id="r2">0.86</strong>. These test readings include sensor noise, which is why the fit is not perfect.</p>
+<p>The gap to the "perfect information" controller in the table is small, which shows that the noise in the detector counts costs little once readings are smoothed.</p></div>
+<figure><img src="assets/model_accuracy.png" alt="Scatter plot of model predicted green time against ideal green time on the test set"></figure>
+</div>
+
+<h2>Reproduce it</h2>
+<pre>git clone https://github.com/kayrie18/intelligent-traffic-management.git
+cd intelligent-traffic-management
+pip install -r requirements.txt
+python run_all.py</pre>
+<p>This regenerates the datasets, retrains the model, reruns the simulation and rewrites the charts and website data in <code>docs/</code>.</p>
+
+<h2>Links</h2>
+<dl class="facts">
+<dt>GitHub repository</dt><dd><a href="https://github.com/kayrie18/intelligent-traffic-management">https://github.com/kayrie18/intelligent-traffic-management</a></dd>
+<dt>Portfolio website</dt><dd><a href="https://kayrie18.github.io/intelligent-traffic-management/">https://kayrie18.github.io/intelligent-traffic-management/</a></dd>
+</dl>
+</main>
+
+<footer class="site"><div class="wrap">
+<p>CP 81 Comprehension 2, Project 4: Intelligent Traffic Management System. Ekari Emmanuel Moyo, Reg. No. 23311351007.</p>
+<p>Source code, dataset and documentation: <a href="https://github.com/kayrie18/intelligent-traffic-management">https://github.com/kayrie18/intelligent-traffic-management</a></p>
+</div></footer>
+<script src="assets/data.js"></script>
+<script src="assets/results.js"></script>
+</body>
+</html>

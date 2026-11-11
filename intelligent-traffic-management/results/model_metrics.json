@@ -1,0 +1,7 @@
+{
+  "train_rows": 12000,
+  "test_rows": 3000,
+  "mae_seconds": 2.75,
+  "r2": 0.859,
+  "fixed_plan_mae_seconds": 7.97
+}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intelligent Traffic Management System</title>
+<meta name="description" content="AI prototype that recommends traffic light timings from simulated vehicle volumes.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="index.html">Intelligent Traffic Management</a>
+<nav aria-label="Main">
+<a href="index.html" aria-current="page">Overview</a><a href="method.html">Method</a><a href="results.html">Results</a><a href="https://github.com/kayrie18/intelligent-traffic-management">GitHub repository</a>
+</nav></div></header>
+
+<main class="wrap">
+<section class="intro">
+<h1>Intelligent Traffic Management System</h1>
+<p class="lede">A prototype that reads simulated vehicle volumes at a four-way junction and recommends how long each direction should get a green light.</p>
+<div class="btns"><a class="btn" href="results.html">See the results</a><a class="btn alt" href="method.html">How it works</a><a class="btn alt" href="https://github.com/kayrie18/intelligent-traffic-management">GitHub repository</a></div>
+</section>
+
+<section class="demo" aria-labelledby="demo-h">
+<h2 id="demo-h">Try the controller</h2>
+<p class="sub">Drag the clock through the simulated day, or set the four traffic volumes yourself. The recommendation comes from the trained neural network running in your browser.</p>
+<div class="presets" role="group" aria-label="Times of day">
+<button type="button" data-h="3" aria-pressed="false">Night</button>
+<button type="button" data-h="8" aria-pressed="false">Morning peak</button>
+<button type="button" data-h="12.5" aria-pressed="false">Lunchtime market</button>
+<button type="button" data-h="17" aria-pressed="false">Evening peak</button>
+</div>
+<div class="demo-grid">
+<div>
+<div class="clock" id="clock">08:00<small id="clock-note">volumes follow the simulated day</small></div>
+<div class="ctl"><label for="hour">Time of day</label><input id="hour" type="range" min="0" max="23.5" step="0.5" value="8"></div>
+<div class="ctl"><label for="v-north">North approach <output id="o-north"></output></label><input id="v-north" type="range" min="0" max="900" step="10" value="700"></div>
+<div class="ctl"><label for="v-south">South approach <output id="o-south"></output></label><input id="v-south" type="range" min="0" max="900" step="10" value="400"></div>
+<div class="ctl"><label for="v-east">East approach <output id="o-east"></output></label><input id="v-east" type="range" min="0" max="900" step="10" value="250"></div>
+<div class="ctl"><label for="v-west">West approach <output id="o-west"></output></label><input id="v-west" type="range" min="0" max="900" step="10" value="200"></div>
+</div>
+<div class="bars" aria-live="polite">
+<h3>One 90-second cycle</h3>
+<div class="cyc" id="bar-ai"></div><div class="tag" id="tag-ai"></div>
+<div class="cyc fixed" id="bar-fixed"></div><div class="tag"><span>Fixed-time plan</span><span>40 s / 40 s</span></div>
+<h3>Load on each approach (demand ÷ capacity)</h3>
+<div class="sat" id="sat"></div>
+<p class="note" id="summary"></p>
+</div>
+</div>
+</section>
+
+<section>
+<h2>What the project does</h2>
+<div class="cols">
+<div><h3>The problem</h3><p>A fixed signal plan gives every direction the same green time all day. When one road is busy and the cross road is empty, vehicles queue while green time goes to waste.</p></div>
+<div><h3>The approach</h3><p>A small neural network reads smoothed detector counts for the four approaches each cycle and recommends the split between the North–South and East–West phases.</p></div>
+<div><h3>The evidence</h3><p>A second-by-second simulation of a full day compares the AI plan against a fixed 40 s / 40 s plan over five random days.</p></div>
+</div>
+
+<h2>Project details</h2>
+<dl class="facts">
+<dt>Student</dt><dd>Ekari Emmanuel Moyo (Reg. No. 23311351007, list number 4)</dd>
+<dt>Course</dt><dd>CP 81 Comprehension 2</dd>
+<dt>Task</dt><dd>Design an AI-based prototype that analyses traffic conditions and recommends traffic light adjustments based on simulated vehicle volumes.</dd>
+<dt>Output</dt><dd>A traffic management simulation</dd>
+<dt>Tools</dt><dd>Python, NumPy, pandas, scikit-learn, Matplotlib; this site is plain HTML, CSS and JavaScript on GitHub Pages</dd>
+<dt>Repository</dt><dd><a href="https://github.com/kayrie18/intelligent-traffic-management">https://github.com/kayrie18/intelligent-traffic-management</a></dd>
+</dl>
+</section>
+</main>
+
+<footer class="site"><div class="wrap">
+<p>CP 81 Comprehension 2, Project 4: Intelligent Traffic Management System. Ekari Emmanuel Moyo, Reg. No. 23311351007.</p>
+<p>Source code, dataset and documentation: <a href="https://github.com/kayrie18/intelligent-traffic-management">https://github.com/kayrie18/intelligent-traffic-management</a></p>
+</div></footer>
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
