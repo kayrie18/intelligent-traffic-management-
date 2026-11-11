@@ -1,40 +1,76 @@
-"""Train the green-time model and export it as JSON (used by Python and the website)."""
+"""Train the green-time model (pure NumPy, no scikit-learn/SciPy) and export it as JSON."""
 import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPRegressor
-from sklearn.metrics import mean_absolute_error, r2_score
 
 from .common import APPROACHES, GREEN_TOTAL, FIXED_NS, MIN_GREEN
 
 ROOT = Path(__file__).resolve().parent.parent
 IN_SCALE, OUT_SCALE = 1000.0, float(GREEN_TOTAL)
+LAYERS = [4, 16, 16, 1]
+EPOCHS, BATCH, LR = 250, 128, 0.003
+
+
+def forward(params, X):
+    acts = [X]
+    for i, (W, b) in enumerate(params):
+        z = acts[-1] @ W + b
+        acts.append(np.maximum(z, 0.0) if i < len(params) - 1 else z)
+    return acts
+
+
+def train(X, y, seed=7):
+    rng = np.random.default_rng(seed)
+    params = [(rng.normal(0, np.sqrt(2.0 / a), (a, b)), np.zeros(b)) for a, b in zip(LAYERS[:-1], LAYERS[1:])]
+    m = [(np.zeros_like(W), np.zeros_like(b)) for W, b in params]
+    v = [(np.zeros_like(W), np.zeros_like(b)) for W, b in params]
+    step = 0
+    for _ in range(EPOCHS):
+        order = rng.permutation(len(X))
+        for s in range(0, len(X), BATCH):
+            idx = order[s:s + BATCH]
+            xb, yb = X[idx], y[idx].reshape(-1, 1)
+            acts = forward(params, xb)
+            delta = 2 * (acts[-1] - yb) / len(xb)          # d(MSE)/d(output)
+            step += 1
+            for i in range(len(params) - 1, -1, -1):
+                W, b = params[i]
+                gW, gb = acts[i].T @ delta, delta.sum(0)
+                if i > 0:
+                    delta = (delta @ W.T) * (acts[i] > 0)
+                for k, g in ((0, gW), (1, gb)):               # Adam update
+                    m[i] = tuple(0.9 * m[i][j] + 0.1 * g if j == k else m[i][j] for j in (0, 1))
+                    v[i] = tuple(0.999 * v[i][j] + 0.001 * g * g if j == k else v[i][j] for j in (0, 1))
+                    mh = m[i][k] / (1 - 0.9 ** step)
+                    vh = v[i][k] / (1 - 0.999 ** step)
+                    p = params[i][k] - LR * mh / (np.sqrt(vh) + 1e-8)
+                    params[i] = (p, params[i][1]) if k == 0 else (params[i][0], p)
+    return params
 
 
 def main():
     df = pd.read_csv(ROOT / "data" / "traffic_training_data.csv")
     X = df[[f"sensor_{a.lower()}_vph" for a in APPROACHES]].values / IN_SCALE
     y = df["ideal_ns_green_s"].values / OUT_SCALE
-    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=1)
+    perm = np.random.default_rng(1).permutation(len(X))
+    cut = int(len(X) * 0.8)
+    tr, te = perm[:cut], perm[cut:]
 
-    net = MLPRegressor(hidden_layer_sizes=(16, 16), activation="relu", max_iter=800,
-                       early_stopping=True, random_state=7)
-    net.fit(X_tr, y_tr)
-
-    pred = np.clip(net.predict(X_te) * OUT_SCALE, MIN_GREEN, GREEN_TOTAL - MIN_GREEN)
-    truth = y_te * OUT_SCALE
+    params = train(X[tr], y[tr])
+    pred = np.clip(forward(params, X[te])[-1].ravel() * OUT_SCALE, MIN_GREEN, GREEN_TOTAL - MIN_GREEN)
+    truth = y[te] * OUT_SCALE
+    ss_res, ss_tot = ((truth - pred) ** 2).sum(), ((truth - truth.mean()) ** 2).sum()
     metrics = {
-        "train_rows": int(len(X_tr)), "test_rows": int(len(X_te)),
-        "mae_seconds": round(float(mean_absolute_error(truth, pred)), 2),
-        "r2": round(float(r2_score(truth, pred)), 3),
-        "fixed_plan_mae_seconds": round(float(mean_absolute_error(truth, np.full_like(truth, FIXED_NS))), 2),
+        "train_rows": int(len(tr)), "test_rows": int(len(te)),
+        "mae_seconds": round(float(np.abs(truth - pred).mean()), 2),
+        "r2": round(float(1 - ss_res / ss_tot), 3),
+        "fixed_plan_mae_seconds": round(float(np.abs(truth - FIXED_NS).mean()), 2),
     }
     spec = {
         "input_scale": IN_SCALE, "output_scale": OUT_SCALE,
-        "weights": [w.round(6).tolist() for w in net.coefs_],
-        "biases": [b.round(6).tolist() for b in net.intercepts_],
+        "weights": [W.round(6).tolist() for W, _ in params],
+        "biases": [b.round(6).tolist() for _, b in params],
         "metrics": metrics,
     }
     (ROOT / "models").mkdir(exist_ok=True)
